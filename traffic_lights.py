@@ -94,14 +94,14 @@ class V2X_Proxy(object):
         """这是计算50、90、99分位的方法并打印到终端"""
         
         data = pd.DataFrame({self.ids: self.delays}) #写入pandas
-        delay_50 = data[self.ids].quantile(0.5) #计算50分位数
-        delay_90 = data[self.ids].quantile(0.9) #计算90分位数
+        delay_50 = data[self.ids].quantile(0.50) #计算50分位数
+        delay_90 = data[self.ids].quantile(0.90) #计算90分位数
         delay_99 = data[self.ids].quantile(0.99) #计算99分位数
         # self.delays.sort()
         # print(self.delays)
-        print("%s号路口 50分位:%s"%(self.ids, "%.2f"%delay_50)+"%")
-        print("%s号路口 90分位:%s"%(self.ids, "%.2f"%delay_90)+"%")
-        print("%s号路口 99分位:%s"%(self.ids, "%.2f"%delay_99)+"%")
+        print("%s号路口50分位: %s"%(self.ids, int(delay_50))+"ms")
+        print("%s号路口90分位: %s"%(self.ids, int(delay_90))+"ms")
+        print("%s号路口99分位: %s"%(self.ids, int(delay_99))+"ms")
        
     
 if __name__ == '__main__':

@@ -61,7 +61,7 @@ class V2X_Proxy(object):
                     # print("正在提炼"+time_two,lon, lat,random.randint(0,30)*'>'+"done") 
                     self.date_list.append([time_two, lon, lat])
                 elif "<perception_strategy> time offset of car and roadside timestamp -hv" in line:
-                    time_three=time_two=line.split()[1][0:8]
+                    time_three=line.split()[1][0:8]
                     delays=int(float(line.split()[13])*1000)
                     self.delays.append([time_three,delays]) 
                 elif not line :
@@ -102,9 +102,9 @@ class V2X_Proxy(object):
         delay_50 = data["delay"].quantile(0.5) #计算50分位数
         delay_90 = data["delay"].quantile(0.9) #计算90分位数
         delay_99 = data["delay"].quantile(0.99) #计算99分位数
-        print("%s号路口 50分位:%s"%(self.ids, "%.2f"%delay_50)+"%")
-        print("%s号路口 90分位:%s"%(self.ids, "%.2f"%delay_90)+"%")
-        print("%s号路口 99分位:%s"%(self.ids, "%.2f"%delay_99)+"%")
+        print("%s号路口50分位: %s"%(self.ids, int(delay_50))+"ms")
+        print("%s号路口90分位: %s"%(self.ids, int(delay_90))+"ms")
+        print("%s号路口99分位: %s"%(self.ids, int(delay_99))+"ms")
     
 if __name__ == '__main__':
         """程序入口设置对应城市的UTM"""
