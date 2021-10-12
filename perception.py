@@ -61,7 +61,7 @@ class V2X_Proxy(object):
                     # print("正在提炼"+time_two,lon, lat,random.randint(0,30)*'>'+"done") 
                     self.date_list.append([time_two, lon, lat])
                 elif "<perception_strategy> time offset of car and roadside timestamp -hv" in line:
-                    time_three=time_two=line.split()[1][0:8]
+                    time_three=line.split()[1][0:8]
                     delays=int(float(line.split()[13])*1000)
                     self.delays.append([time_three,delays]) 
                 elif not line :
