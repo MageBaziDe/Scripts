@@ -99,9 +99,9 @@ class V2X_Proxy(object):
         delay_99 = data[self.ids].quantile(0.99) #计算99分位数
         # self.delays.sort()
         # print(self.delays)
-        print("%s号路口 50分位:%s"%(self.ids, "%.2f"%delay_50)+"%")
-        print("%s号路口 90分位:%s"%(self.ids, "%.2f"%delay_90)+"%")
-        print("%s号路口 99分位:%s"%(self.ids, "%.2f"%delay_99)+"%")
+        print("%s号路口50分位:%s"%(self.ids, "%.2f"%delay_50)+"ms")
+        print("%s号路口90分位:%s"%(self.ids, "%.2f"%delay_90)+"ms")
+        print("%s号路口99分位:%s"%(self.ids, "%.2f"%delay_99)+"ms")
        
     
 if __name__ == '__main__':
