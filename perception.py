@@ -6,7 +6,6 @@ import time
 import utm
 import simplekml
 import pandas as pd
-import random
 
 class V2X_Proxy(object):
     """这是感知信号覆盖脚本类"""
@@ -19,22 +18,19 @@ class V2X_Proxy(object):
         self.file_re1 = '^v2x_obstacles_recv.log.'+time.strftime("%Y%m%d")  # 正则匹配今天的日志数据
         self.file_re2 = '^perception_strategy.log.'+time.strftime("%Y%m%d")  # 正则匹配今天的日志数据
         self.date_list = [] #路口所有位置坐标
-        self.delays = [] 
+        self.delays = [] #路口所有的时延
         self.time_one=[] #路口所有时间
 
     def Feils(self):
         """提取文件绝对路径储存到列表方法"""
         files_path = []
-        files = os.listdir(self.file_path)
-        files.sort()
-        for file in files:
+        files = os.listdir(self.file_path) #路径下所有文件
+        files.sort() #对文件进行排序
+        for file in files: #循环文件并正则提取
             if re.search(self.file_re1, file):
-                files_path.append(self.file_path+file)
+                files_path.append(self.file_path+file) 
             elif re.search(self.file_re2, file):
-                files_path.append(self.file_path+file)    
-    
-        if not files_path:
-            return
+                files_path.append(self.file_path+file) 
         else:
             return files_path
 
@@ -58,7 +54,7 @@ class V2X_Proxy(object):
                     time_two=line.split()[1][0:8]
                     y=line.split()[6]
                     lon, lat = self.utmll(float(x), float(y))
-                    # print("正在提炼"+time_two,lon, lat,random.randint(0,30)*'>'+"done") 
+                    # print("正在提炼"+time_two,lon, lat") 
                     self.date_list.append([time_two, lon, lat])
                 elif "<perception_strategy> time offset of car and roadside timestamp -hv" in line:
                     time_three=line.split()[1][0:8]
@@ -69,6 +65,7 @@ class V2X_Proxy(object):
 
     def kml_id(self):
         """"通过pandas储存数据并写入到KML方法"""
+
         data1 = pd.DataFrame(self.time_one, columns=["times"])  # 使用pandas储存时间比对后的位置
         data1['hz'] = data1.groupby('times').times.transform('count')  # 按照时间统计每秒接收的频率并追加后一列
         df1 = data1.groupby('times').mean()  # 分组去重平均数据
@@ -76,7 +73,8 @@ class V2X_Proxy(object):
         df2 = data2.groupby('times').mean()  # 分组去重平均数据
         df_inner=pd.merge(df1,df2,on='times') #合并两个表取出有用数据
         # print(df_inner)
-        
+        if df_inner.empty: #如果没有值直接返回停止创建
+            return
         kml = simplekml.Kml()
         for row in df_inner.iterrows():  # 通过pandas结果集遍历每一行数据
             # print(row[0],row[1][0],row[1][1],row[1][2])
@@ -107,35 +105,34 @@ class V2X_Proxy(object):
         print("%s号路口99分位: %s"%(self.ids, int(delay_99))+"ms")
     
 if __name__ == '__main__':
-        """程序入口设置对应城市的UTM"""
+    """程序入口设置对应城市的UTM"""
 
-        citys={
-            "yizhuang": 50,
-            "guangzhou": 49,
-            "chongqing": 48,
-            "changsha": 48,
-            "chengdulongchi": 48
+    citys={
+        "yizhuang": 50,
+        "guangzhou": 49,
+        "chongqing": 48,
+        "changsha": 48,
+        "chengdulongchi": 48
             }
-        city=input("请输城市名称(chengdulongchi,chongqing,changsha,guangzhou,yizhuang):")
-        if city in citys.keys():
-            utmid=citys[city]
-            print(city, ">>>>>>----------------》》》》", citys[city])
-            while True:
-                ids=input('请输入路口号^_^:---!回车直接退出哦!---:')
-                if not ids:
-                    break
-                else:
-                    try:
-                        time1=time.time()
-                        prox=V2X_Proxy(utmid, ids,city)  # 创建类对象  
-                        gevent_s=[gevent.spawn(prox.Read_feils, file)for file in prox.Feils()]
-                        gevent.joinall(gevent_s)                         
-                        prox.kml_id()  # 调用生成KML方法
-                        prox.delay_date() #调用时延方法
-                        time2=time.time()
-                        print("总共用时:",time2-time1) 
-                    except Exception as f:
-                        print("请查阅是否有今天>>>>>>>>>>>>>>>>>>>>>>>>>> %s--%s.log" %(city, time.strftime("%Y%m%d")))
-        else:
-            print("citys >>>>> 么有该地区^_^!!!请检查!!!")
+    city=input("请输城市名称(chengdulongchi,chongqing,changsha,guangzhou,yizhuang):")
+    if city in citys.keys():
+        utmid=citys[city]
+        print(city, ">>>>>>----------------》》》》", citys[city])
+        while True:
+            ids=input('请输入路口号^_^:---!回车直接退出哦!---:')
+            if not ids:
+                break
+            else:
+                time1=time.time() #创建开始时间 
+                prox=V2X_Proxy(utmid, ids,city)  # 创建类对象  
+                try:  
+                    gevent.joinall([gevent.spawn(prox.Read_feils, file)for file in prox.Feils()]) #协程遍历所有文件 
+                    prox.kml_id()  # 调用生成KML方法
+                    prox.delay_date() #调用时延方法 
+                except Exception as f:
+                    print("请查阅是否有今天>>>>>>>>>>>>>> %s--%s.log>>>>>>>或未找到数据" %(city, time.strftime("%Y%m%d")))                      
+                time2=time.time() #创建结束时间
+                print("总共用时:",time2-time1)               
+    else:
+        print("citys >>>>> 么有该地区^_^!!!请检查!!!")
 

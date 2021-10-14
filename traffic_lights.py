@@ -6,7 +6,6 @@ import time
 import utm
 import simplekml
 import pandas as pd
-import random
 
 class V2X_Proxy(object):
     """这是红绿灯信号覆盖脚本类"""
@@ -28,8 +27,6 @@ class V2X_Proxy(object):
         for file in files:
             if re.search(self.file_re, file):
                 files_path.append(self.file_path+file)
-        if not files_path:
-            return
         else:
             return files_path
 
@@ -56,7 +53,7 @@ class V2X_Proxy(object):
                     if x=='nan' or y=='nan':
                         continue
                     lon, lat = self.utmll(float(x), float(y))
-                    # print("正在提炼"+time_two,lon, lat,random.randint(0,30)*'>'+"done")   
+                    # print("正在提炼"+time_two,lon, lat)   
                     self.date_list.append([time_two, lon, lat]) # 提取有效数据添加二维列表供pandas使用
                 elif "<v2x-proxy> Timestamp Delta (Junction: %s):" % self.ids in line: # 筛选路口延迟并打印在控制台
                     ti = int(float(line.split()[9])*1000)  # 获取延时并转化
@@ -73,7 +70,8 @@ class V2X_Proxy(object):
         data2 = pd.DataFrame(self.date_list, columns=["times", "lon", "lat"])  # 使用pandas储存时间比对后的位置
         df2 = data2.groupby('times').mean()  # 分组去重平均数据
         df_inner=pd.merge(df1,df2,on='times') #合并两个表取出有用数据
-
+        if df_inner.empty: #如果没有值直接返回停止创建
+            return
         kml = simplekml.Kml()
         for row in df_inner.iterrows():  # 通过pandas结果集遍历每一行数据
             # print(row[0],row[1][0],row[1][1],row[1][2])
@@ -89,7 +87,7 @@ class V2X_Proxy(object):
             elif row[1][0] < 4:
                 pnt.style.iconstyle.color = 'ff1600fc'  # red
         kml.save(self.file_path+"traffic_%s.kml" % self.ids)  # 生成KML文件
-
+            
     def delay_date(self):
         """这是计算50、90、99分位的方法并打印到终端"""
         
@@ -122,19 +120,18 @@ if __name__ == '__main__':
                 if not ids:
                     break
                 else:
-                    try:
-                        time1=time.time()
-                        prox=V2X_Proxy(utmid, ids)  # 创建类对象
-                    
-                        gevent_s=[gevent.spawn(prox.Read_feils, file) for file in prox.Feils()]  # 通过文件列表创建gevent列表
-                        gevent.joinall(gevent_s)  # 添加到gevent
+                    time1=time.time() #开始时间
+                    prox=V2X_Proxy(utmid, ids)  # 创建类对象
+                    try:  
+                        gevent.joinall([gevent.spawn(prox.Read_feils, file) for file in prox.Feils()])  # 通过文件循环创建gevent列表
                         prox.kml_id()  # 调用生成KML方法
                         prox.delay_date() # 调用生成时延方法
-                        time2=time.time()
-                        print("总共用时:",time2-time1)
-                        
                     except Exception as f:
-                        print("请查阅是否有今天>>>>>>>>>>>>>>>>>>>>>>>>>> %s--%s.log" %(city, time.strftime("%Y%m%d")))
+                        print("请查阅是否有今天>>>>>>>>>>>>>> %s--%s.log >>>>>或未找到数据" %(city, time.strftime("%Y%m%d"))) 
+                    time2=time.time() #结束时间
+                    print("总共用时:",time2-time1)
+                        
+                    
 
         else:
             print("citys >>>>> 么有该地区^_^!!!请检查!!!")
