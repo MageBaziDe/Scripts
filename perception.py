@@ -10,7 +10,7 @@ import pandas as pd
 class V2X_Proxy(object):
     """这是感知信号覆盖脚本类"""
 
-    def __init__(self, utmid, ids,city):
+    def __init__(self, utmid, ids,city,hz):
         self.ids = ids  # 填写路口id
         self.utmid = utmid  # 选择对应地区的UTM
         self.city=city # 选择对应城市
@@ -20,6 +20,7 @@ class V2X_Proxy(object):
         self.date_list = [] #路口所有位置坐标
         self.delays = [] #路口所有的时延
         self.time_one=[] #路口所有时间
+        self.hz=hz 
 
     def Feils(self):
         """提取文件绝对路径储存到列表方法"""
@@ -58,6 +59,8 @@ class V2X_Proxy(object):
                     self.date_list.append([time_two, lon, lat])
                 elif "<perception_strategy> time offset of car and roadside timestamp -hv" in line:
                     time_three=line.split()[1][0:8]
+                    if line.split()[13]=="is":
+                        continue
                     delays=int(float(line.split()[13])*1000)
                     self.delays.append([time_three,delays]) 
                 elif not line :
@@ -76,18 +79,18 @@ class V2X_Proxy(object):
         if df_inner.empty: #如果没有值直接返回停止创建
             return
         kml = simplekml.Kml()
+        
         for row in df_inner.iterrows():  # 通过pandas结果集遍历每一行数据
             # print(row[0],row[1][0],row[1][1],row[1][2])
             pnt = kml.newpoint(name=int(row[1][0]), coords=[(row[1][1], row[1][2])])  # 把坐标写入到KML中
             pnt.style.iconstyle.icon.href = 'http://maps.google.com/mapfiles/kml/shapes/square.png'  # 设置KML方块样式
             pnt.style.iconstyle.scale = 0.4  # 设置KML方块样式大小
-            pnt.style.labelstyle.scale=0.5 #设置标签字体大小
-
-            if row[1][0] >= 14:  # 根据频率大小改变方块颜色
+            pnt.style.labelstyle.scale=0.5 #设置标签字体大小  
+            if row[1][0] >= self.hz:  # 根据频率大小改变方块颜色
                 pnt.style.iconstyle.color = 'ff32cd32'  # green
-            elif row[1][0] >= 8 and row[1][0] <= 13:
+            elif row[1][0] >= (self.hz-4) and row[1][0] <= (self.hz-1):
                 pnt.style.iconstyle.color = 'ffff00ff'  # magenta
-            elif row[1][0] < 8:
+            elif row[1][0] < (self.hz-4):
                 pnt.style.iconstyle.color = 'ff1600fc'  # red
         kml.save(self.file_path+"perception_%s.kml" % self.ids)  # 生成KML文件
 
@@ -118,13 +121,17 @@ if __name__ == '__main__':
     if city in citys.keys():
         utmid=citys[city]
         print(city, ">>>>>>----------------》》》》", citys[city])
+        if city=="chengdulongchi": #匹配高速和城市的Hz频率
+            hz=19
+        else: 
+            hz=14
         while True:
             ids=input('请输入路口号^_^:---!回车直接退出哦!---:')
             if not ids:
                 break
             else:
                 time1=time.time() #创建开始时间 
-                prox=V2X_Proxy(utmid, ids,city)  # 创建类对象  
+                prox=V2X_Proxy(utmid, ids,city,hz)  # 创建类对象  
                 try:  
                     gevent.joinall([gevent.spawn(prox.Read_feils, file)for file in prox.Feils()]) #协程遍历所有文件 
                     prox.kml_id()  # 调用生成KML方法

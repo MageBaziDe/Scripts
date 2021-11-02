@@ -1,4 +1,5 @@
-from gevent import monkey;monkey.patch_all()
+from gevent import monkey
+from utm.conversion import E;monkey.patch_all()
 import gevent
 import os
 import re
@@ -18,6 +19,7 @@ class V2X_Proxy(object):
         self.date_list = [] #接收到所有位置信息
         self.delays = [] #接收到的路口时延信息
         self.time_one=[] #接收到所有路口信息时间
+        self.hz=8
 
     def Feils(self):
         """提取文件绝对路径储存到列表方法"""
@@ -80,11 +82,11 @@ class V2X_Proxy(object):
             pnt.style.iconstyle.scale = 0.4  # 设置KML方块样式大小
             pnt.style.labelstyle.scale=0.5 #设置标签字体大小
 
-            if row[1][0] >= 8:  # 根据频率大小改变方块颜色
+            if row[1][0] >= self.hz:  # 根据频率大小改变方块颜色
                 pnt.style.iconstyle.color = 'ff32cd32'  # green
-            elif row[1][0] >= 4 and row[1][0] <= 7:
+            elif row[1][0] >= (self.hz-4) and row[1][0] <= (self.hz-1):
                 pnt.style.iconstyle.color = 'ffff00ff'  # magenta
-            elif row[1][0] < 4:
+            elif row[1][0] < (self.hz-4):
                 pnt.style.iconstyle.color = 'ff1600fc'  # red
         kml.save(self.file_path+"traffic_%s.kml" % self.ids)  # 生成KML文件
             
